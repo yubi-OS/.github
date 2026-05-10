@@ -104,6 +104,29 @@ yubiOS/
 
 ## Design decisions
 
+```
+mkosi --profile yubios build
+          ↓
+    OCI image (yubios:latest)
+          ↓
+bcvk native-to-disk yubios:latest /dev/sdb
+          ↓
+    first boot → yubios-enroll.service → YubiKey tap
+                                              │
+                                              ▼ 
+                                              ─────► YubiKey (PIV slot 9c)
+                                                         │
+                                                         ▼ sbsign via PKCS11
+                                                    mkosi fork ──────────► OCI container image (yubiOS)
+                                                         │                         │
+                                                         │                         ▼ bootc install/upgrade
+                                                         │                   bare metal / VM disk
+                                                         │
+                                                         └─────► bcvk fork ──────► ephemeral VM (test)
+                                                                      │                  ▲
+                                                                      └── USB passthrough YubiKey hidraw
+```
+
 All decisions are recorded in [ADR.md](ADR.md) with sources.
 The short version: TPM replaced by YubiKey everywhere it can be.
 Where FIDO2/hidraw can't reach (Secure Boot signing), PIV/CCID is used and documented honestly.
