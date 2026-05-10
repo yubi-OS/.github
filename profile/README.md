@@ -127,7 +127,7 @@ dhi.io/debian-base (pinned OCI)                       │
         │       bcvk native-to-disk                                └── USB passthrough YubiKey hidraw
         │
         ├─▶ bcvk ephemeral run (dev loop)
-        │           ↑
+        │           ↑                                             systemd-homed + yubikey
         │       QEMU + virtiofsd + u2f-passthru
         │
         └─▶ bcvk to-disk (disk image for CI)
