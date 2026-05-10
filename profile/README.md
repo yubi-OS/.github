@@ -114,17 +114,28 @@ bcvk native-to-disk yubios:latest /dev/sdb
     first boot → yubios-enroll.service → YubiKey tap
                                               │
                                               ▼ 
-                                              ─────► YubiKey (PIV slot 9c)
-                                                         │
-                                                         ▼ sbsign via PKCS11
-                                                    mkosi fork ──────────► OCI container image (yubiOS)
-                                                         │                         │
-                                                         │                         ▼ bootc install/upgrade
-                                                         │                   bare metal / VM disk
-                                                         │
-                                                         └─────► bcvk fork ──────► ephemeral VM (test)
-                                                                      │                  ▲
-                                                                      └── USB passthrough YubiKey hidraw
+                                               ─────► YubiKey (PIV slot 9c)
+dhi.io/debian-base (pinned OCI)                       │
+        │                                             ▼ sbsign via PKCS11
+        ▼ Containerfile                          mkosi fork ──────────► OCI container image (yubiOS)
+  rootless podman build                               │                         │
+        │                                             │                         ▼ bootc install/upgrade
+        ▼ OCI image → dhi.io/yubi-OS/yubiOS           │                   bare metal / VM disk
+        │                                             │
+        ├─▶ bootc install to-disk (bare metal)        └─────► bcvk fork ──────► ephemeral VM (test)
+        │           ↑                                              │                  ▲
+        │       bcvk native-to-disk                                └── USB passthrough YubiKey hidraw
+        │
+        ├─▶ bcvk ephemeral run (dev loop)
+        │           ↑
+        │       QEMU + virtiofsd + u2f-passthru
+        │
+        └─▶ bcvk to-disk (disk image for CI)
+                    ↑
+                bootc install to-disk (in ephemeral VM)
+```
+
+
 ```
 
 All decisions are recorded in [ADR.md](ADR.md) with sources.
