@@ -129,10 +129,10 @@ dhi.io/debian-base (pinned OCI)                       │
         ├─▶ bcvk ephemeral run (dev loop)        systemd-homed
         │           ↑                                  |
         │       QEMU + virtiofsd + u2f-passthru        └── LUKS protected /home/ (No plaintext pass)
-        │                                                                    |
-        └─▶ bcvk to-disk (disk image for CI)                                 ├─▶ SLOT 0 ─────► U2f protected unlock
-                    ↑                                                        |
-                bootc install to-disk (in ephemeral VM)                      └─▶ SLOT 1 ─────► U2f recovery key
+        │                                                    |
+        └─▶ bcvk to-disk (disk image for CI)                 ├─▶ SLOT 0 ─────► U2f protected unlock
+                    ↑                                        |
+                bootc install to-disk (in ephemeral VM)      └─▶ SLOT 1 ─────► U2f recovery key
 ```
 
 
