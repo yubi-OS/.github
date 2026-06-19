@@ -127,12 +127,12 @@ dhi.io/debian-base (pinned OCI)                       │
         │       bcvk native-to-disk                                └── USB passthrough YubiKey hidraw
         │
         ├─▶ bcvk ephemeral run (dev loop)
-        │           ↑                                             systemd-homed ─────► LUKS protected /home/ (No plaintext pass/recovery)
-        │       QEMU + virtiofsd + u2f-passthru                                                  |
-        │                                                                                        |
-        └─▶ bcvk to-disk (disk image for CI)                                                     └── SLOT 0 ─────► U2f protected unlock
-                    ↑                                                                            |
-                bootc install to-disk (in ephemeral VM)                                          └── SLOT 1 ─────► U2f recovery key
+        │           ↑                            systemd-homed ─────► LUKS protected /home/ (No plaintext pass/recovery)
+        │       QEMU + virtiofsd + u2f-passthru                               |
+        │                                                                     |
+        └─▶ bcvk to-disk (disk image for CI)                                  └── SLOT 0 ─────► U2f protected unlock
+                    ↑                                                         |
+                bootc install to-disk (in ephemeral VM)                       └── SLOT 1 ─────► U2f recovery key
 ```
 
 
