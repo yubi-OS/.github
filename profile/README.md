@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/corning-croak-cable/yubiOS/main/assets/logo.png" alt="yubiOS logo" width="220" style="border-radius:16px;"/>
+<img src="https://raw.githubusercontent.com/yubi-OS/yubiOS/main/assets/logo.png" alt="yubiOS logo" width="220" style="border-radius:16px;"/>
 
 # yubiOS
 
@@ -123,20 +123,65 @@ Each step is skippable. Each script is independently re-runnable. See [ONBOARDIN
 
 ```
 yubiOS/
-├── Containerfile              # OCI image (bootc, Fedora base)
-├── mkosi.conf                 # mkosi build (particleos-style UKI + verity)
-├── assets/logo.png            # you're looking at it
+├── .github/workflows/           # CI: main build, ARM64 fTPM integration lanes, dhi manifest fetch
+│   ├── yubiOS-ci.yml               # primary build+test+publish pipeline (merge-manifest -> Docker Hub)
+│   ├── ci_test-vm.yml              # bcvk VM test suite (swtpm, swu2f)
+│   ├── ci_test-int.yml             # ARM64 secure-world integration orchestrator
+│   ├── ci_int_stmm.yml             # StandaloneMM (F1) lane
+│   ├── ci_int_optee_fip.yml        # OP-TEE + TF-A FIP fold (F2) lane
+│   ├── ci_int_qemu.yml             # QEMU e2e (F4) lane
+│   └── fetch-dhi-manifest.yml      # resolves dhi.io/debian-base INDEX digest
+├── assets/
+│   ├── logo.png                    # you're looking at it
+│   └── ci/vm-swtpm.conf            # swtpm drop-in for bcvk CI VMs
+├── mkosi.conf                   # mkosi build (particleos-style UKI + verity)
+├── mkosi.conf.d/
+│   ├── desktop/mkosi.conf          # GNOME desktop profile
+│   ├── minimal/mkosi.conf          # minimal profile
+│   ├── surface-x86/mkosi.conf      # Surface x86 profile
+│   ├── surface-arm64/mkosi.conf    # Surface ARM64 profile
+│   └── test/                       # TEST-only profile: swu2f in-guest CTAP2 authenticator
+│       ├── mkosi.conf
+│       └── install-swu2f-authenticator.sh
+├── Containerfile                # OCI image (bootc, Fedora base)
+├── yubiOS.rego                  # OPA/Rego supply-chain Build Policy
+├── renovate.json                # digest-tracking automation (ADR-015)
+├── refs/                        # per-PR test/implementation specs
+│   ├── v261-base-image.md
+│   ├── sbsign-pkcs11-validate.md
+│   ├── luks-fido2-e2e-test.md
+│   ├── bcvk-swtpm-ci.md
+│   └── arm64-ftpm-phase-f0.md
+├── tests/
+│   ├── unit/                       # bats unit tests (enroll-*, pam-u2f stack, lib)
+│   ├── fixtures/                   # lsblk fixtures for LUKS detection tests
+│   ├── vm/                         # bcvk VM test scripts (LUKS2 e2e, TPM PCR verify, ARM64 fTPM QEMU)
+│   ├── validate-pkcs11-uri.sh       # PKCS#11 URI validation for PIV slot 9c
+│   └── verify-uki-signature.sh      # UKI signature verification
 ├── usr/lib/
-│   ├── bootc/install/           # bootc install config (systemd-boot, DPS)
-│   ├── bootc/kargs.d/           # persistent kernel args
-│   ├── dracut.conf.d/           # fido2 dracut module for boot-time disk unlock
-│   ├── udev/rules.d/            # YubiKey hidraw + CCID uaccess rules
-│   ├── pam.d/                   # PAM U2F sudo config template
-│   ├── systemd/system/          # enrollment service + presets
-│   └── yubiOS/                  # enrollment scripts
-├── ADR.md                     # architecture decision records
-├── ONBOARDING.md              # step-by-step onboarding guide
-└── TODO.md                    # known gaps + future work
+│   ├── bootc/install/               # bootc install config (systemd-boot, DPS)
+│   ├── bootc/kargs.d/               # persistent kernel args
+│   ├── dracut.conf.d/               # fido2 + composefs dracut modules for boot-time unlock
+│   ├── udev/rules.d/                # YubiKey hidraw + CCID uaccess rules
+│   ├── pam.d/                       # PAM U2F sudo + system-auth config
+│   ├── repart/                      # systemd-repart first-boot partition definitions
+│   ├── systemd/system/              # enrollment service unit
+│   ├── systemd/system-preset/       # enrollment service preset
+│   ├── systemd/homed.conf.d/        # homed FIDO2 defaults
+│   └── yubiOS/                      # enrollment scripts (sb, luks, homed, ssh, pam, totp, gpg, largeblob, backup) + lib.sh
+├── ADR.md                       # architecture decision records
+├── ARCHITECTURE.md              # trust chain + build pipeline diagrams
+├── SPEC.md                      # consolidated architecture + use-case specification
+├── MISSION.md                   # project mission
+├── MITIGATE.md                  # attack-surface -> control mapping (Faux Phy threat model)
+├── FUTURE.md                    # post-launch ARM64-owned root of trust plan
+├── ONBOARDING.md                 # step-by-step onboarding guide
+├── PINNED.md                     # single source of truth for pinned digests/SHAs
+├── BLOCKERS.md                   # open issue dependency map
+├── TODO.md                       # known gaps + future work
+├── AGENTS.md                     # guidance for AI coding agents working on this org
+├── MAINTAINER.md                 # maintainer contact
+└── CITATION.md                   # citation + primary-source references
 ```
 
 ## Requirements
@@ -151,38 +196,43 @@ yubiOS/
 
 ## Design decisions
 
-```
-  quay.io/fedora/fedora-bootc:45  @sha256 (pinned base — ADR-003)
-                 |
-        +--------+---------------------+
-        v Containerfile                v mkosi --profile yubios
-  rootless docker buildx          UKI + dm-verity, signed via
-  --policy yubiOS.rego            YubiKey PIV slot 9c (PKCS#11)
-  (supply-chain gate)                  |
-        +--------+---------------------+
-                 v   multi-arch OCI image  (linux/amd64 + linux/arm64)
-        yubiOS-ci.yml . merge-manifest . SLSA provenance + SBOM attested
-                 |  docker push
-                 v
-   +-------------------------------------------------+
-   | docker.io/0mniteck/yubios:latest                |  <== PRIMARY DOWNLOAD
-   | (+ immutable :<commit-sha> per build)           |
-   +-------------------------------------------------+
-                 |  pull
-   +-------------+------------------+---------------------------------+
-   v bootc install                  v bootc switch + upgrade          v bcvk
-     to-disk (bare metal)             day-2 atomic update              ephemeral VM / native-to-disk
-   |                                                                   (test loop, USB YubiKey passthrough)
-   v  first boot -> yubiOS-enroll.service -> YubiKey tap
-   +-------------+----------------------+------------------------------+
-   v PIV slot 9c (CCID)                 v FIDO2 (hidraw)               v systemd-homed
-  Secure Boot signing                 LUKS2 disk unlock              LUKS2 /home
-  (systemd-sbsign / PKCS#11)          SSH ed25519-sk, pam-u2f         +- SLOT 0  FIDO2 unlock
-                                                                      +- SLOT 1  recovery key
+```mermaid
+graph TD
+    BASE["quay.io/fedora/fedora-bootc:45\n@sha256 (pinned base — ADR-015)\ndigest in PINNED.md"]
+    CF["Containerfile\nrootless docker buildx\n--policy yubiOS.rego\n(supply-chain gate)"]
+    MKOSI["mkosi --profile yubios\nUKI + dm-verity, signed via\nYubiKey PIV slot 9c (PKCS#11)"]
+    OCI["multi-arch OCI image\nlinux/amd64 + linux/arm64"]
+    CI["yubiOS-ci.yml . merge-manifest\nSLSA provenance + SBOM attested"]
+    REG["docker.io/0mniteck/yubios:latest\n+ immutable :&lt;commit-sha&gt; per build"]
+    INSTALL["bootc install to-disk\n(bare metal)"]
+    UPGRADE["bootc switch + upgrade\nday-2 atomic update"]
+    BCVK["bcvk\nephemeral VM / native-to-disk\n(test loop, USB YubiKey passthrough)"]
+    ENROLL["first boot\nyubiOS-enroll.service\nYubiKey tap"]
+    PIV["PIV slot 9c (CCID)\nSecure Boot signing\n(systemd-sbsign / PKCS#11)"]
+    FIDO["FIDO2 (hidraw)\nLUKS2 disk unlock\nSSH ed25519-sk, pam-u2f"]
+    HOMED["systemd-homed\nLUKS2 /home\nSLOT 0 FIDO2 unlock\nSLOT 1 recovery key"]
+
+    BASE --> CF
+    BASE --> MKOSI
+    CF --> OCI
+    MKOSI --> OCI
+    OCI --> CI
+    CI -->|docker push| REG
+    REG -->|pull| INSTALL
+    REG -->|pull| UPGRADE
+    REG -->|pull| BCVK
+    INSTALL --> ENROLL
+    ENROLL --> PIV
+    ENROLL --> FIDO
+    ENROLL --> HOMED
+
+    style REG fill:#ff1493,color:#fff
+    style ENROLL fill:#ff1493,color:#fff
+    style PIV fill:#0d6e0d,color:#fff
+    style FIDO fill:#0d6e0d,color:#fff
+    style HOMED fill:#0d6e0d,color:#fff
+    style CI fill:#8b4513,color:#fff
 ```
 
-
-```
 All decisions are recorded in [ADR.md](ADR.md) with sources.
 The short version: TPM replaced by YubiKey everywhere it can be.
-```
