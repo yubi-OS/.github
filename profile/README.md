@@ -4,16 +4,15 @@
 
 # yubiOS
 
-**FIDO2-first immutable OS — YubiKey is the root of trust**
-
-### 🦴 🚧 Work In Progress 🚧 Work In Progress 🚧 Work In Progress 🚧
+**FIDO2-first immutable OS — HSM/U2F is the root of trust**
 
 [![License: LGPL-2.1](https://img.shields.io/badge/license-LGPL--2.1-magenta?style=flat-square)](LICENSE)
 [![Status: Groundwork](https://img.shields.io/badge/status-groundwork-blueviolet?style=flat-square)](TODO.md)
 [![YubiKey 5](https://img.shields.io/badge/YubiKey-5%20series-ff1493?style=flat-square)](https://www.yubico.com)
 [![FIDO2](https://img.shields.io/badge/FIDO2-hidraw-purple?style=flat-square)](https://fidoalliance.org)
 
-*No TPM. No OEM. No trust anchors you don't control.*
+*No OEM. No trust anchors you don't control.*
+### 🦴 🚧 Work In Progress 🚧 Work In Progress 🚧 Work In Progress 🚧
 
 </div>
 
@@ -21,14 +20,16 @@
 
 ## What it is
 
-yubiOS fuses four lineages:
+yubiOS is an immutable, bootc-delivered Linux OS that treats the owner's YubiKey as the user-facing identity, unlock, and authorization boundary. It combines:
 
 | Layer | Inspiration | What it gives us |
 |---|---|---|
-| **particleos ethos** | [systemd/particleos](https://github.com/systemd/particleos) | Immutable rootfs, UKI, dm-verity, composefs, systemd-boot |
-| **bootc design** | [bootc-dev/bootc](https://github.com/bootc-dev/bootc) | OCI image as OS delivery unit, day-2 upgrades via registry pull |
-| **Amutable vision** | [Lennart Poettering + systemd team](https://amutable.com) | "Integrity should be built into every critical infrastructure project" — image-based OS, verifiable integrity, determinism as a default |
-| **YubiKey root of trust** | FIDO2 / PIV / OATH | Hardware-bound trust replacing TPM at every boundary |
+| particleos ethos | [systemd/particleos](https://github.com/systemd/particleos) | Immutable `/usr`, UKIs, dm-verity, composefs, systemd-boot |
+| bootc design | [bootc-dev/bootc](https://github.com/bootc-dev/bootc) | OCI image as OS delivery unit, day-2 upgrades via registry pull |
+| systemd image model | [Fitting Everything Together](https://0pointer.net/blog/fitting-everything-together.html) | DPS partitions, systemd-repart first boot, A/B sysupdate, systemd-homed |
+| YubiKey owner-control plane | FIDO2 / PIV / OATH | Owner-held authorization for signing, unlock, SSH, PAM, and app 2FA |
+
+ARM64 is the primary target platform because it is where yubiOS can work toward owning the firmware stack below the UKI through TF-A, OP-TEE, fTPM, and U-Boot. x86-64 remains fully supported above the UKI, but its firmware and optional TPM are platform/OEM trust anchors.
 
 ### Ecosystem alignment
 
@@ -38,163 +39,141 @@ ParticleOS, and Ubuntu Core — founded [Amutable](https://amutable.com) with th
 > *“Deliver determinism and verifiable integrity to Linux workloads everywhere.”*
 
 yubiOS is independently building toward the same architecture, with one additional constraint:
-the YubiKey replaces the TPM as the hardware root of trust at every layer. The "Fitting Everything
+the owner-facing authority should live with the machine owner. A YubiKey provides the signing,
+unlock, SSH, PAM, and application-2FA boundary, while TPM/fTPM measurement and firmware
+state remain separate platform-integrity signals where they are useful. The "Fitting Everything
 Together" essay at [0pointer.net](https://0pointer.net/blog/fitting-everything-together.html) is the
 primary design reference for yubiOS — hermetic /usr, DPS partitions, systemd-repart first-boot,
 A/B sysupdate, systemd-homed per-user encryption, and UKI + dm-verity trust chain.
 
 ## Trust chain
 
-```
-┌───────────────────────────────────────────┐
-│                 YubiKey 5                 │
-├───────────────────────────────────────────┤
-│ PIV slot 9c (CCID)   Secure Boot signing  │
-│ FIDO2 HMAC-secret    Disk unlock (hidraw) │
-│ FIDO2 ed25519-sk     SSH keys    (hidraw) │
-│ FIDO2 U2F            sudo/login  (hidraw) │
-│ OATH TOTP            App 2FA     (hidraw) │
-└───────────────────────────────────────────┘
+```text
+YubiKey 5
+- PIV slot 9c via CCID: Secure Boot / UKI signing with systemd-sbsign + PKCS#11
+- FIDO2 hmac-secret via hidraw: LUKS2 root and systemd-homed unlock
+- FIDO2 ed25519-sk via hidraw: SSH resident keys
+- FIDO2 U2F via hidraw: sudo/login with pam-u2f
+- OATH via hidraw: application 2FA
 ```
 
-> **ADR-002 note:** Secure Boot signing uses PIV/CCID (via `systemd-sbsign` + PKCS#11),
-> not hidraw. All other operations run on FIDO2 via `/dev/hidraw*`. Full rationale: [ADR.md](ADR.md)
+Secure Boot signing uses PIV/CCID, not hidraw. Full rationale: [ADR-002](ADR.md#adr-002-secure-boot-signing-via-piv-ccid-not-fido2-hidraw).
 
 ## Get yubiOS
 
-yubiOS ships as a **multi-arch [bootc](https://github.com/bootc-dev/bootc) OCI image on Docker Hub** — this is the primary download.
+yubiOS currently publishes a pre-launch multi-arch [bootc](https://github.com/bootc-dev/bootc) OCI image on Docker Hub:
 
-**Pull** (auto-selects `amd64` / `arm64`):
 ```sh
 docker pull 0mniteck/yubios:latest
 ```
 
-**Pin by digest** (reproducible — recommended for installs):
+For reproducible installs, pin the image by the digest produced by the latest green `yubiOS-ci.yml` publish for the intended release. Do not treat a run-specific digest in an old PR or research note as evergreen.
+
+> **Warning:** yubiOS is groundwork / work in progress. The install flows below can destroy data on the target disk. Test on disposable hardware or a VM, back up recovery material first, and use the current [TODO.md](TODO.md), [BLOCKERS.md](BLOCKERS.md), and [PR.md](PR.md) before treating any image as safe for broader use.
+
+Prepare and mount the target filesystems first, for example with `systemd-repart` or another installer that creates the yubiOS DPS layout. Mount the target root at `/mnt` and its boot filesystem at `/mnt/boot`, then install the image with `bootc install to-filesystem`:
+
+## Build from source, install to-filesystem, 1 step
+
 ```sh
-docker pull 0mniteck/yubios@sha256:c965a816b9173cf6f227e6b5b09e321e841ab5f8a49075c112657a0a40b5e761
+docker buildx build --load --policy reset=true,strict=true,filename=yubiOS.rego -t yubios:local . && \
+docker run --rm --privileged --pid=host --ipc=host \
+  --security-opt label=type:unconfined_t \
+  -v /dev:/dev \
+  -v /var/lib/containers:/var/lib/containers \
+  -v /:/run/host \
+  yubios:local bootc install to-filesystem \
+    --bootloader=systemd \
+    --root-mount-spec="" \
+    --composefs-backend \
+    --skip-finalize \
+    /run/host/mnt/
 ```
 
-**Install / upgrade with bootc:**
+## Fetch/install from the OCI image, 1 step
+
 ```sh
-sudo bootc install to-disk --source-imgref docker://0mniteck/yubios:latest /dev/nvme0n1
-sudo bootc switch 0mniteck/yubios:latest && sudo bootc upgrade
+IMAGE=docker.io/0mniteck/yubios:latest
+docker pull "$IMAGE" && \
+docker run --rm --privileged --pid=host --ipc=host \
+  --security-opt label=type:unconfined_t \
+  -v /var/lib/containers:/var/lib/containers \
+  -v /dev:/dev \
+  -v /:/run/host \
+  "$IMAGE" \
+  bootc install to-filesystem \
+    --source-imgref="registry:${IMAGE}" \
+    --bootloader=systemd \
+    --root-mount-spec="" \
+    --composefs-backend \
+    --skip-finalize \
+    /run/host/mnt/
+
+bootc switch 0mniteck/yubios:latest
+bootc upgrade
 ```
 
-| | |
-|---|---|
+Every approved base image and GitHub Action SHA lives in [PINNED.md](PINNED.md). That file is the single source of truth for pins.
+
 | Registry | `docker.io/0mniteck/yubios` |
-| Tags | `:latest` + immutable `:<commit-sha>` per build |
+|---|---|
+| Production tags | `latest` plus immutable commit tags |
+| Test tags | `dev`, `dev-<sha>` for swu2f TEST-only images |
+| Artifact tags | `installer`, `firmware` and per-commit variants |
 | Platforms | `linux/amd64`, `linux/arm64` |
-| Supply chain | SLSA build provenance + SBOM attestations attached |
-| Published by | `yubiOS-ci.yml` `merge-manifest` job (current: run #113, `bfbc38f`) |
-
-> Building from source instead? See **Quick start** below.
-
-## Quick start
-
-```sh
-# Build the OCI image (per ADR-014: Docker Buildx, not Podman)
-docker buildx build --policy reset=true,strict=true,filename=yubiOS.rego -t yubiOS .
-
-# Install to disk (disable Secure Boot in UEFI first)
-docker run --rm --privileged --pid=host \
-  -v /dev:/dev -v /var/lib/containers:/var/lib/containers \
-  yubiOS bootc install to-disk /dev/nvme0n1
-
-# First boot: the enrollment wizard runs automatically
-# Or launch it manually:
-yubiOS-enroll
-```
+| Supply chain | SLSA build provenance + SBOM attestations |
 
 ## Enrollment wizard
 
-On first boot `yubiOS-enroll.service` fires on tty1 and walks through:
+On first boot `yubiOS-enroll.service` runs on tty1 and walks through:
 
-```
- ─── Step 1/4: Secure Boot Signing ───
- ─── Step 2/4: Disk Encryption (FIDO2 hidraw) ───
- ─── Step 3/4: SSH Key (ed25519-sk resident) ───
- ─── Step 4/4: sudo / Login Auth (U2F pam-u2f) ───
-```
+1. Secure Boot signing through PIV slot 9c.
+2. Disk encryption through FIDO2 hmac-secret.
+3. SSH resident key generation through `ed25519-sk`.
+4. sudo/login registration through pam-u2f.
 
-Each step is skippable. Each script is independently re-runnable. See [ONBOARDING.md](ONBOARDING.md).
+Each step is skippable and independently re-runnable. See [ONBOARDING.md](ONBOARDING.md).
 
 ## Repo layout
 
-```
+```text
 yubiOS/
-├── .github/workflows/           # CI: main build, ARM64 fTPM integration lanes, dhi manifest fetch
-│   ├── yubiOS-ci.yml               # primary build+test+publish pipeline (merge-manifest -> Docker Hub)
-│   ├── ci_test-vm.yml              # bcvk VM test suite (swtpm, swu2f)
-│   ├── ci_test-int.yml             # ARM64 secure-world integration orchestrator
-│   ├── ci_int_stmm.yml             # StandaloneMM (F1) lane
-│   ├── ci_int_optee_fip.yml        # OP-TEE + TF-A FIP fold (F2) lane
-│   ├── ci_int_qemu.yml             # QEMU e2e (F4) lane
-│   └── fetch-dhi-manifest.yml      # resolves dhi.io/debian-base INDEX digest
-├── assets/
-│   ├── logo.png                    # you're looking at it
-│   └── ci/vm-swtpm.conf            # swtpm drop-in for bcvk CI VMs
-├── mkosi.conf                   # mkosi build (particleos-style UKI + verity)
-├── mkosi.conf.d/
-│   ├── desktop/mkosi.conf          # GNOME desktop profile
-│   ├── minimal/mkosi.conf          # minimal profile
-│   ├── surface-x86/mkosi.conf      # Surface x86 profile
-│   ├── surface-arm64/mkosi.conf    # Surface ARM64 profile
-│   └── test/                       # TEST-only profile: swu2f in-guest CTAP2 authenticator
-│       ├── mkosi.conf
-│       └── install-swu2f-authenticator.sh
-├── Containerfile                # OCI image (bootc, Fedora base)
-├── yubiOS.rego                  # OPA/Rego supply-chain Build Policy
-├── renovate.json                # digest-tracking automation (ADR-015)
-├── refs/                        # per-PR test/implementation specs
-│   ├── v261-base-image.md
-│   ├── sbsign-pkcs11-validate.md
-│   ├── luks-fido2-e2e-test.md
-│   ├── bcvk-swtpm-ci.md
-│   └── arm64-ftpm-phase-f0.md
-├── tests/
-│   ├── unit/                       # bats unit tests (enroll-*, pam-u2f stack, lib)
-│   ├── fixtures/                   # lsblk fixtures for LUKS detection tests
-│   ├── vm/                         # bcvk VM test scripts (LUKS2 e2e, TPM PCR verify, ARM64 fTPM QEMU)
-│   ├── validate-pkcs11-uri.sh       # PKCS#11 URI validation for PIV slot 9c
-│   └── verify-uki-signature.sh      # UKI signature verification
-├── usr/lib/
-│   ├── bootc/install/               # bootc install config (systemd-boot, DPS)
-│   ├── bootc/kargs.d/               # persistent kernel args
-│   ├── dracut.conf.d/               # fido2 + composefs dracut modules for boot-time unlock
-│   ├── udev/rules.d/                # YubiKey hidraw + CCID uaccess rules
-│   ├── pam.d/                       # PAM U2F sudo + system-auth config
-│   ├── repart/                      # systemd-repart first-boot partition definitions
-│   ├── systemd/system/              # enrollment service unit
-│   ├── systemd/system-preset/       # enrollment service preset
-│   ├── systemd/homed.conf.d/        # homed FIDO2 defaults
-│   └── yubiOS/                      # enrollment scripts (sb, luks, homed, ssh, pam, totp, gpg, largeblob, backup) + lib.sh
-├── ADR.md                       # architecture decision records
-├── ARCHITECTURE.md              # trust chain + build pipeline diagrams
-├── SPEC.md                      # consolidated architecture + use-case specification
-├── MISSION.md                   # project mission
-├── MITIGATE.md                  # attack-surface -> control mapping (Faux Phy threat model)
-├── FUTURE.md                    # post-launch ARM64-owned root of trust plan
-├── ONBOARDING.md                 # step-by-step onboarding guide
-├── PINNED.md                     # single source of truth for pinned digests/SHAs
-├── BLOCKERS.md                   # open issue dependency map
-├── TODO.md                       # known gaps + future work
-├── AGENTS.md                     # guidance for AI coding agents working on this org
-├── MAINTAINER.md                 # maintainer contact
-└── CITATION.md                   # citation + primary-source references
+├── .github/workflows/              # CI, manifest refresh, publish, VM/e2e, integration lanes
+├── assets/                         # logo and release/documentation assets
+├── mkosi.conf                      # primary mkosi build definition
+├── mkosi.conf.d/                   # desktop, minimal, Surface, Chipsec, and test profiles
+├── refs/                           # dated research notes, planning cycles, implementation specs
+├── tests/                          # unit, VM, PKCS#11, FIDO2, UKI, and policy verification tests
+├── usr/lib/                        # OS overlay: bootc, dracut, PAM, repart, systemd, yubiOS scripts
+├── Containerfile                   # production bootc image definition
+├── Containerfile.dev               # TEST-only swu2f/dev image definition
+├── yubiOS.rego                     # Docker Build Policy gate for pins and registries
+├── renovate.json                   # pinned digest tracking automation
+├── AGENTS.md                       # repository guidance for coding agents
+├── README.md                       # project overview, install, and source map
+├── ADR.md                          # architecture decision records
+├── ARCHITECTURE.md                 # trust chain and build pipeline diagrams
+├── SPEC.md                         # normative project specification
+├── MISSION.md                      # project mission and AI-resilience framing
+├── MITIGATE.md                     # threat model and control mapping
+├── FUTURE.md                       # roadmap and research backlog
+├── ONBOARDING.md                   # operator enrollment guide
+├── CITATION.md                     # citation guidance and upstream source trail
+├── PR.md                           # public-relations campaign planning
+├── PINNED.md                       # approved refs and digests
+├── BLOCKERS.md                     # active dependency and blocker map
+└── TODO.md                         # active planning surface
 ```
 
 ## Requirements
 
-| | Minimum |
+| Component | Minimum |
 |---|---|
-| YubiKey firmware | 5.2.3 (ed25519-sk) |
-| systemd | **261** (systemd-sbsign, systemd-cryptenroll FIDO2; v261 adds `ConditionSecurity=measured-os`, `RestrictFileSystems=`) |
-| OpenSSH | 8.2 (FIDO2 key types) |
-| pam-u2f | **1.3.1** (CVE-2025-23013 fix) |
-| Platform | **x86-64** (primary); **arm64/aarch64** (in development — see ADR-017) |
-
-## Design decisions
+| YubiKey firmware | 5.2.3 for ed25519-sk |
+| systemd | 261 for current measured-boot gates and v261 research targets |
+| OpenSSH | 8.2 for FIDO2 key types |
+| pam-u2f | 1.3.1 for CVE-2025-23013 fix |
+| Platform | arm64/aarch64 primary; x86-64 secondary but fully supported |
 
 ```mermaid
 graph TD
@@ -204,7 +183,7 @@ graph TD
     OCI["multi-arch OCI image\nlinux/amd64 + linux/arm64"]
     CI["yubiOS-ci.yml . merge-manifest\nSLSA provenance + SBOM attested"]
     REG["docker.io/0mniteck/yubios:latest\n+ immutable :&lt;commit-sha&gt; per build"]
-    INSTALL["bootc install to-disk\n(bare metal)"]
+    INSTALL["bootc install to-filesystem\n(externally prepared /mnt)"]
     UPGRADE["bootc switch + upgrade\nday-2 atomic update"]
     BCVK["bcvk\nephemeral VM / native-to-disk\n(test loop, USB YubiKey passthrough)"]
     ENROLL["first boot\nyubiOS-enroll.service\nYubiKey tap"]
@@ -234,5 +213,13 @@ graph TD
     style CI fill:#8b4513,color:#fff
 ```
 
-All decisions are recorded in [ADR.md](ADR.md) with sources.
-The short version: TPM replaced by YubiKey everywhere it can be.
+## Current research notes
+
+- Latest docs/research planning pass: [refs/planning-cycle-2026-07-11.md](refs/planning-cycle-2026-07-11.md)
+- Public-relations campaign: [PR.md](PR.md), with kickoff friend map at [refs/pr-friend-map-2026-07-17.md](refs/pr-friend-map-2026-07-17.md)
+- ARM64 zstd EFI zboot / bcvk DirectBoot: [refs/zstd-efi-zboot-bcvk.md](refs/zstd-efi-zboot-bcvk.md)
+- LUKS2 FIDO2 e2e coverage: [refs/luks-fido2-e2e-test.md](refs/luks-fido2-e2e-test.md)
+- ARM64 fTPM Phase F0: [refs/arm64-ftpm-phase-f0.md](refs/arm64-ftpm-phase-f0.md)
+- systemd v261 base-image history: [refs/v261-base-image.md](refs/v261-base-image.md)
+
+All decisions are recorded in [ADR.md](ADR.md), with source-backed research in [refs/](refs/).
