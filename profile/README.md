@@ -7,7 +7,7 @@
 **FIDO2-first immutable OS — HSM/U2F as the root of trust**
 
 [![License: LGPL-2.1](https://img.shields.io/badge/license-LGPL--2.1-magenta?style=flat-square)](LICENSE)
-[![Status: Groundwork](https://img.shields.io/badge/status-groundwork-blueviolet?style=flat-square)](TODO.md)
+[![Status: Groundwork](https://img.shields.io/badge/status-groundwork-blueviolet?style=flat-square)](https://github.com/yubi-OS/yubiOS/blob/main/docs/TODO.md)
 [![YubiKey 5](https://img.shields.io/badge/YubiKey-5%20series-ff1493?style=flat-square)](https://www.yubico.com)
 [![FIDO2](https://img.shields.io/badge/FIDO2-hidraw-purple?style=flat-square)](https://fidoalliance.org)
 
@@ -59,7 +59,7 @@ YubiKey 5
 - OATH via hidraw: application 2FA
 ```
 
-Secure Boot signing uses PIV/CCID, not hidraw. Full rationale: [ADR-002](ADR.md#adr-002-secure-boot-signing-via-piv-ccid-not-fido2-hidraw).
+Secure Boot signing uses PIV/CCID, not hidraw. Full rationale: [ADR-002](https://github.com/yubi-OS/yubiOS/blob/main/docs/ADR.md#adr-002-secure-boot-signing-via-piv-ccid-not-fido2-hidraw).
 
 ## Get yubiOS
 
@@ -75,7 +75,7 @@ does not by itself prove the image was reproducibly built; the CI two-build
 evidence described below does. Do not treat a run-specific digest in an old PR
 or research note as evergreen.
 
-> **Warning:** yubiOS is groundwork / work in progress. The install flows below can destroy data on the target disk. Test on disposable hardware or a VM, back up recovery material first, and use the current [TODO.md](TODO.md), [BLOCKERS.md](BLOCKERS.md), and [PR.md](PR.md) before treating any image as safe for broader use.
+> **Warning:** yubiOS is groundwork / work in progress. The install flows below can destroy data on the target disk. Test on disposable hardware or a VM, back up recovery material first, and use the current [TODO.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/TODO.md), [BLOCKERS.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/BLOCKERS.md), and [PR.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/PR.md) before treating any image as safe for broader use.
 
 Prepare and mount the target filesystems first, for example with `systemd-repart` or another installer that creates the yubiOS DPS layout. Mount the target root at `/mnt` and its boot filesystem at `/mnt/boot`, then install the image with `bootc install to-filesystem`:
 
@@ -122,7 +122,7 @@ LOCAL_TAG=review ./scripts/build-local-images.sh production
 ./scripts/build-local-images.sh repro-dev
 ```
 
-Every mode launches the [PINNED.md](PINNED.md) DHI image as a privileged outer
+Every mode launches the [PINNED.md](https://github.com/yubi-OS/yubiOS/blob/main/PINNED.md) DHI image as a privileged outer
 container, installs the SHA-512-verified Docker 29.6.0 rootless extras and
 Buildx 0.35.0 used by CI, starts a rootless Docker-in-Docker daemon, and selects
 the policy-bound `hardened` builder. Source refs used by the artifact paths are
@@ -201,7 +201,7 @@ bootc switch 0mniteck/yubios:latest
 bootc upgrade
 ```
 
-Every approved base image and GitHub Action SHA lives in [PINNED.md](PINNED.md). That file is the single source of truth for pins.
+Every approved base image and GitHub Action SHA lives in [PINNED.md](https://github.com/yubi-OS/yubiOS/blob/main/PINNED.md). That file is the single source of truth for pins.
 
 | Registry | `docker.io/0mniteck/yubios` |
 |---|---|
@@ -221,9 +221,7 @@ On first boot `yubiOS-enroll.service` runs on tty1 and walks through:
 3. SSH resident key generation through `ed25519-sk`.
 4. sudo/login registration through pam-u2f.
 
-Each step is skippable and independently re-runnable. See [ONBOARDING.md](ONBOARDING.md).
-
-## Repo layout
+Each step is skippable and independently re-runnable. See [ONBOARDING.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/ONBOARDING.md).
 
 ## Repo layout
 
@@ -312,7 +310,7 @@ graph TD
 - Workflow evidence review: [refs/ci-evidence-2026-07-21.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/ci-evidence-2026-07-21.md)
 - systemd-family upstream progress and contributor bubble map: [refs/systemd-upstream-progress-2026-07-21.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/systemd-upstream-progress-2026-07-21.md)
 - Latest docs/research planning pass: [refs/planning-cycle-2026-07-11.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/planning-cycle-2026-07-11.md)
-- Public-relations campaign: [PR.md](PR.md), with kickoff friend map at [refs/pr-friend-map-2026-07-17.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/pr-friend-map-2026-07-17.md)
+- Public-relations campaign: [PR.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/PR.md), with kickoff friend map at [refs/pr-friend-map-2026-07-17.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/pr-friend-map-2026-07-17.md)
 - ARM64 zstd EFI zboot / bcvk DirectBoot: [refs/zstd-efi-zboot-bcvk.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/zstd-efi-zboot-bcvk.md)
 - LUKS2 FIDO2 e2e coverage: [refs/luks-fido2-e2e-test.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/luks-fido2-e2e-test.md)
 - ARM64 fTPM Phase F0: [refs/arm64-ftpm-phase-f0.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/arm64-ftpm-phase-f0.md)
