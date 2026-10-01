@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/yubi-OS/assets/refs/heads/main/logo.png" alt="yubiOS logo" width="220" style="border-radius:16px;"/>
+<img src="https://raw.githubusercontent.com/yubi-OS/assets/main/logo.png" alt="yubiOS logo" width="220" style="border-radius:16px;"/>
 
 # yubiOS
 
@@ -307,13 +307,11 @@ graph TD
 
 ## Current research notes
 
-- Workflow evidence review: [refs/ci-evidence-2026-07-21.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/ci-evidence-2026-07-21.md)
-- systemd-family upstream progress and contributor bubble map: [refs/systemd-upstream-progress-2026-07-21.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/systemd-upstream-progress-2026-07-21.md)
-- Latest docs/research planning pass: [refs/planning-cycle-2026-07-11.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/planning-cycle-2026-07-11.md)
-- Public-relations campaign: [PR.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/PR.md), with kickoff friend map at [refs/pr-friend-map-2026-07-17.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/pr-friend-map-2026-07-17.md)
-- ARM64 zstd EFI zboot / bcvk DirectBoot: [refs/zstd-efi-zboot-bcvk.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/zstd-efi-zboot-bcvk.md)
-- LUKS2 FIDO2 e2e coverage: [refs/luks-fido2-e2e-test.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/luks-fido2-e2e-test.md)
-- ARM64 fTPM Phase F0: [refs/arm64-ftpm-phase-f0.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/arm64-ftpm-phase-f0.md)
-- systemd v261 base-image history: [refs/v261-base-image.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/v261-base-image.md)
+- **Provenance-gated Chromium (OMN-165, Done)**: `yubi-OS/chromium` (clean mirror) + `yubi-OS/chromium-provenance` (overlay, patch series 0001–0018, rebranded Antimony) gate AI-generated content via a C2PA/text-watermark detection stack; content-shell releases v0.1.0–v0.1.2 published (draft → attach → publish, reproducible tar). Prior-art report: [refs/prior-art-ai-content-blocking-browser-2026-09-30.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/prior-art-ai-content-blocking-browser-2026-09-30.md)
+- **Jev orchestrator + Jev Automations**: gated, verifiable, human-approvable automation (fail-closed policy gate, expiring approval bindings, six terminal states, append-only audit) with the n8n lead machine retargeted onto it; skills live at [skills/jev-orchestrator](https://github.com/yubi-OS/yubiOS/blob/main/skills/jev-orchestrator/SKILL.md). Refs: [refs/jev-orchestrator-2026-10-01.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/jev-orchestrator-2026-10-01.md), [refs/jev-automations-2026-10-01.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/jev-automations-2026-10-01.md)
+- **refs/ refresh sweep (PRs #260–#274)**: 234 refs docs triaged with the jev-1.13 decision model + searXNG digs; typed research DB landed at [papers/data/refs-refresh-2026-09-29](https://github.com/yubi-OS/yubiOS/blob/main/papers/data/refs-refresh-2026-09-29/archive.json)
+- **Knowledge corpora (yubi-OS/knowledge)**: five corpora minted via [skills/knowledge-corpus-mint](https://github.com/yubi-OS/yubiOS/blob/main/skills/knowledge-corpus-mint/SKILL.md) (yubios, yubios v2, 0pointer, systemd-usage, strudel)
+- **Papers corpus**: [papers/learned-latent-curves-2026-08-06.pdf](https://github.com/yubi-OS/yubiOS/blob/main/papers/learned-latent-curves-2026-08-06.pdf), [papers/is-this-x-2026-08-12-Final.pdf](https://github.com/yubi-OS/yubiOS/blob/main/papers/is-this-x-2026-08-12-Final.pdf), [papers/curved-corpus-unified-2026-08-13.pdf](https://github.com/yubi-OS/yubiOS/blob/main/papers/curved-corpus-unified-2026-08-13.pdf); the 7-theorem Lean machine-check lives in [papers/data/lean/CurvedCorpus.lean](https://github.com/yubi-OS/yubiOS/blob/main/papers/data/lean/CurvedCorpus.lean) and is verified by `lean-check.yml` CI
+- **Release train**: v0.7.1 → v0.8.9 (2026-09-26); SLSA build provenance + SPDX SBOM + cosign attestations shipped across the publish workflows (OMN-157)
 
 All decisions are recorded in [ADR.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/ADR.md), with source-backed research in [refs/](https://github.com/yubi-OS/yubiOS/blob/main/refs/).
