@@ -46,7 +46,7 @@ Together" essay at [0pointer.net](https://0pointer.net/blog/fitting-everything-t
 primary design reference for yubiOS — hermetic /usr, DPS partitions, systemd-repart first-boot,
 A/B sysupdate, systemd-homed per-user encryption, and UKI + dm-verity trust chain.
 
-<img src="https://github.com/yubi-OS/yubiOS/blob/main/assets/yubiOS_slide_2.png?raw=true" width="80%" >
+<img src="https://raw.githubusercontent.com/yubi-OS/assets/main/yubiOS_slide_2.png" width="80%" >
 
 ## Trust chain
 
@@ -143,7 +143,7 @@ auxiliary cache, and compares a canonical unsigned root-filesystem record plus
 the initrd and package manifest. The random SoftHSM certificate, root-resident
 signed systemd-boot binary, signed UKI, ESP, Btrfs block serialization, and
 full-disk wrapper are recorded as separate envelopes. See [the
-reproducibility contract](refs/reproducible-builds-2026-07-22.md) for the
+reproducibility contract](https://github.com/yubi-OS/yubiOS/blob/main/refs/reproducible-builds-2026-07-22.md) for the
 installer/TF-A signing, package-snapshot, and RK3588 TPL boundaries.
 
 | Mode | Default host-loaded tags |
@@ -225,46 +225,37 @@ Each step is skippable and independently re-runnable. See [ONBOARDING.md](ONBOAR
 
 ## Repo layout
 
+## Repo layout
+
 ```text
 yubiOS/
 ├── .github/
-│   ├── workflows/                  # CI, refresh, publish, firmware, VM/e2e, integration lanes
+│   ├── workflows/                  # CI, refresh, publish, firmware, VM/e2e, Lean, and integration lanes
 │   ├── patches/                    # pinned CI-only compatibility patches
 │   └── ISSUE_TEMPLATE/             # bug and feature intake templates
-├── assets/                         # logo, campaign media, README HTML, and contributor map
-├── mkosi.conf                      # primary mkosi build definition
-├── mkosi.conf.d/                   # desktop, minimal, Surface, Chipsec, and test profiles
+├── cosign/                         # cosign signing config + keypair for SLSA provenance / SBOM attestations
+├── docs/                           # ADR, SPEC, MISSION, threat model, planning surfaces, and self-doc corpora
+├── papers/                         # research papers (TeX + PDF), charts, data, Lean proofs, and render scripts
+├── playbooks/                      # operational CI/CD runbooks (dispatch, signing, VM e2e, drift recovery)
 ├── refs/                           # dated research notes, planning cycles, implementation specs
-├── scripts/                        # local CI-parity image build entrypoints
+├── scripts/                        # local CI-parity image build entrypoints + validation and drift tooling
+├── skills/                         # agent skill corpus (SKILL.md source of truth, 121 skills)
 ├── tests/                          # unit, VM, PKCS#11, FIDO2, UKI, and policy verification tests
-├── usr/lib/                        # OS overlay: bootc, dracut, PAM, repart, systemd, yubiOS scripts
+├── tools/                          # corpus tooling (auditor, point-map, spectral, skill-check, phonon, ...)
+├── usr/lib/                        # OS overlay: bootc, systemd, udev, and yubiOS scripts (chipsec, sshd, uki)
 ├── Containerfile                   # production bootc image definition
 ├── Containerfile.dev               # TEST-only swu2f/dev image definition
+├── Containerfile.uki               # UKI bake target image definition
+├── Makefile                        # developer entrypoints
+├── mkosi.conf                      # primary mkosi build definition
+├── mkosi.conf.d/                   # desktop, minimal, Surface, Chipsec, and test profiles
+├── mkosi.extra/ + mkosi.finalize   # injected overlays and finalize hook
 ├── yubiOS-bake.hcl                 # non-fork Docker build graph, tags, outputs, and policy wiring
 ├── yubiOS.rego                     # Docker Build Policy gate for pins and registries
 ├── renovate.json                   # pinned digest tracking automation
 ├── AGENTS.md                       # repository guidance for coding agents
 ├── README.md                       # project overview, install, and source map
-├── CI_MAP.md                       # workflow topology, triggers, and artifact ownership
-├── CONTRIBUTING.md                 # contributor workflow and DCO expectations
-├── CODE_OF_CONDUCT.md              # community conduct and reporting rules
-├── SECURITY.md                     # vulnerability reporting policy
-├── MAINTAINER.md                   # maintainer responsibilities and release operations
-├── PLAN.md                         # implementation plan and sequencing
-├── OPTS.md                         # option and trade-off inventory
-├── THREAT_MODEL.md                 # assets, boundaries, adversaries, and residual risks
-├── ADR.md                          # architecture decision records
-├── ARCHITECTURE.md                 # trust chain and build pipeline diagrams
-├── SPEC.md                         # normative project specification
-├── MISSION.md                      # project mission and AI-resilience framing
-├── MITIGATE.md                     # threat model and control mapping
-├── FUTURE.md                       # roadmap and research backlog
-├── ONBOARDING.md                   # operator enrollment guide
-├── CITATION.md                     # citation guidance and upstream source trail
-├── PR.md                           # public-relations campaign planning
 ├── PINNED.md                       # approved refs and digests
-├── BLOCKERS.md                     # active dependency and blocker map
-├── TODO.md                         # active planning surface
 └── LICENSE                         # LGPL-2.1 project license
 ```
 
@@ -318,13 +309,13 @@ graph TD
 
 ## Current research notes
 
-- Workflow evidence review: [refs/ci-evidence-2026-07-21.md](refs/ci-evidence-2026-07-21.md)
-- systemd-family upstream progress and contributor bubble map: [refs/systemd-upstream-progress-2026-07-21.md](refs/systemd-upstream-progress-2026-07-21.md)
-- Latest docs/research planning pass: [refs/planning-cycle-2026-07-11.md](refs/planning-cycle-2026-07-11.md)
-- Public-relations campaign: [PR.md](PR.md), with kickoff friend map at [refs/pr-friend-map-2026-07-17.md](refs/pr-friend-map-2026-07-17.md)
-- ARM64 zstd EFI zboot / bcvk DirectBoot: [refs/zstd-efi-zboot-bcvk.md](refs/zstd-efi-zboot-bcvk.md)
-- LUKS2 FIDO2 e2e coverage: [refs/luks-fido2-e2e-test.md](refs/luks-fido2-e2e-test.md)
-- ARM64 fTPM Phase F0: [refs/arm64-ftpm-phase-f0.md](refs/arm64-ftpm-phase-f0.md)
-- systemd v261 base-image history: [refs/v261-base-image.md](refs/v261-base-image.md)
+- Workflow evidence review: [refs/ci-evidence-2026-07-21.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/ci-evidence-2026-07-21.md)
+- systemd-family upstream progress and contributor bubble map: [refs/systemd-upstream-progress-2026-07-21.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/systemd-upstream-progress-2026-07-21.md)
+- Latest docs/research planning pass: [refs/planning-cycle-2026-07-11.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/planning-cycle-2026-07-11.md)
+- Public-relations campaign: [PR.md](PR.md), with kickoff friend map at [refs/pr-friend-map-2026-07-17.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/pr-friend-map-2026-07-17.md)
+- ARM64 zstd EFI zboot / bcvk DirectBoot: [refs/zstd-efi-zboot-bcvk.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/zstd-efi-zboot-bcvk.md)
+- LUKS2 FIDO2 e2e coverage: [refs/luks-fido2-e2e-test.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/luks-fido2-e2e-test.md)
+- ARM64 fTPM Phase F0: [refs/arm64-ftpm-phase-f0.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/arm64-ftpm-phase-f0.md)
+- systemd v261 base-image history: [refs/v261-base-image.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/v261-base-image.md)
 
-All decisions are recorded in [ADR.md](ADR.md), with source-backed research in [refs/](refs/).
+All decisions are recorded in [ADR.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/ADR.md), with source-backed research in [refs/](https://github.com/yubi-OS/yubiOS/blob/main/refs/).
