@@ -305,13 +305,4 @@ graph TD
     style CI fill:#8b4513,color:#fff
 ```
 
-## Current research notes
-
-- **Provenance-gated Chromium (OMN-165, Done)**: `yubi-OS/chromium` (clean mirror) + `yubi-OS/chromium-provenance` (overlay, patch series 0001–0018, rebranded Antimony) gate AI-generated content via a C2PA/text-watermark detection stack; content-shell releases v0.1.0–v0.1.2 published (draft → attach → publish, reproducible tar). Prior-art report: [refs/prior-art-ai-content-blocking-browser-2026-09-30.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/prior-art-ai-content-blocking-browser-2026-09-30.md)
-- **Jev orchestrator + Jev Automations**: gated, verifiable, human-approvable automation (fail-closed policy gate, expiring approval bindings, six terminal states, append-only audit) with the n8n lead machine retargeted onto it; skills live at [skills/jev-orchestrator](https://github.com/yubi-OS/yubiOS/blob/main/skills/jev-orchestrator/SKILL.md). Refs: [refs/jev-orchestrator-2026-10-01.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/jev-orchestrator-2026-10-01.md), [refs/jev-automations-2026-10-01.md](https://github.com/yubi-OS/yubiOS/blob/main/refs/jev-automations-2026-10-01.md)
-- **refs/ refresh sweep (PRs #260–#274)**: 234 refs docs triaged with the jev-1.13 decision model + searXNG digs; typed research DB landed at [papers/data/refs-refresh-2026-09-29](https://github.com/yubi-OS/yubiOS/blob/main/papers/data/refs-refresh-2026-09-29/archive.json)
-- **Knowledge corpora (yubi-OS/knowledge)**: five corpora minted via [skills/knowledge-corpus-mint](https://github.com/yubi-OS/yubiOS/blob/main/skills/knowledge-corpus-mint/SKILL.md) (yubios, yubios v2, 0pointer, systemd-usage, strudel)
-- **Papers corpus**: [papers/learned-latent-curves-2026-08-06.pdf](https://github.com/yubi-OS/yubiOS/blob/main/papers/learned-latent-curves-2026-08-06.pdf), [papers/is-this-x-2026-08-12-Final.pdf](https://github.com/yubi-OS/yubiOS/blob/main/papers/is-this-x-2026-08-12-Final.pdf), [papers/curved-corpus-unified-2026-08-13.pdf](https://github.com/yubi-OS/yubiOS/blob/main/papers/curved-corpus-unified-2026-08-13.pdf); the 7-theorem Lean machine-check lives in [papers/data/lean/CurvedCorpus.lean](https://github.com/yubi-OS/yubiOS/blob/main/papers/data/lean/CurvedCorpus.lean) and is verified by `lean-check.yml` CI
-- **Release train**: v0.7.1 → v0.8.9 (2026-09-26); SLSA build provenance + SPDX SBOM + cosign attestations shipped across the publish workflows (OMN-157)
-
 All decisions are recorded in [ADR.md](https://github.com/yubi-OS/yubiOS/blob/main/docs/ADR.md), with source-backed research in [refs/](https://github.com/yubi-OS/yubiOS/blob/main/refs/).
